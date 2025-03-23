@@ -61,22 +61,26 @@
         }
         
         .restart-button {
-    display: none; 
-    padding: 10px 20px;
-    font-size: 1em;
-    margin-top: 20px;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-    background-color: #28a745;
-    color: white;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
-}
+            display: none; 
+            padding: 10px 20px;
+            font-size: 1em;
+            margin-top: 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
 
+        .timer {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -89,6 +93,7 @@
     <p id="instructions" style="display: none;">Jó játékot <3</p>
     <div class="color-scale" id="colorScale"></div>
     <div class="feedback" id="feedback"></div>
+    <div class="timer" id="timer">Idő: 0:00</div>
     <button class="restart-button" id="restartButton" onclick="restartGame()">Újra</button>
     
 
@@ -100,6 +105,8 @@
         let score = 0;
         let attempts = 0;
         const maxAttempts = 5;
+        let timerInterval;
+        let startTime;
 
         function generateColorShades(baseColor, numShades, intensity) {
             const shades = [];
@@ -165,55 +172,82 @@
         }
 
         function checkColor(selectedColor, actualColor, selectedDiv) {
-    const feedback = document.getElementById('feedback');
-    const colorOptions = document.querySelectorAll('.color-scale div');
+            const feedback = document.getElementById('feedback');
+            const colorOptions = document.querySelectorAll('.color-scale div');
 
-    if (selectedColor === actualColor) {
-        feedback.textContent = 'Helyes válasz!';
-        feedback.style.color = '#5dc000';
-        score++;
-    } else {
-        feedback.textContent = 'Hibás válasz!';
-        feedback.style.color = '#a30000';
-    }
+            if (selectedColor === actualColor) {
+                feedback.textContent = 'Helyes válasz!';
+                feedback.style.color = '#5dc000';
+                score++;
+            } else {
+                feedback.textContent = 'Hibás válasz!';
+                feedback.style.color = '#a30000';
+            }
 
-   
-    colorOptions.forEach(div => div.style.pointerEvents = 'none');
+            colorOptions.forEach(div => div.style.pointerEvents = 'none');
 
-    attempts++;
-    setTimeout(() => {
-        feedback.textContent = '';
-        setColor();
-        
-        colorOptions.forEach(div => div.style.pointerEvents = 'auto');
-    }, 2000);
-}
+            attempts++;
+            setTimeout(() => {
+                feedback.textContent = '';
+                setColor();
+                
+                colorOptions.forEach(div => div.style.pointerEvents = 'auto');
+            }, 2000);
+        }
 
+        function setDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            score = 0;
+            attempts = 0;
+            previousColor = null;
+            gameStarted = true;
 
-function setDifficulty(difficulty) {
-    currentDifficulty = difficulty;
-    score = 0;
-    attempts = 0;
-    previousColor = null;
-    gameStarted = true;
+            document.getElementById('colorBox').style.display = 'block';
+            document.getElementById('colorScale').style.display = 'flex';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('restartButton').style.display = 'none';
 
-    document.getElementById('colorBox').style.display = 'block';
-    document.getElementById('colorScale').style.display = 'flex';
-    document.getElementById('instructions').style.display = 'block';
-    document.getElementById('restartButton').style.display = 'none';
+            document.querySelector('.difficulty-buttons').style.display = 'none';
 
- 
-    document.querySelector('.difficulty-buttons').style.display = 'none';
+            startTimer();
+            setColor();
+        }
 
-    setColor();
-}
-
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsedTime / 60);
+                const seconds = elapsedTime % 60;
+                document.getElementById('timer').textContent = `Idő: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }, 1000);
+        }
 
         function endGame() {
+            clearInterval(timerInterval);
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60);
+            const seconds = elapsedTime % 60;
+            const totalTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
             document.getElementById('colorBox').style.display = 'none';
             document.getElementById('colorScale').style.display = 'none';
             document.getElementById('feedback').textContent = `Pontszámod: ${score}`;
+            document.getElementById('timer').textContent = `Idő: ${totalTime}`;
             document.getElementById('restartButton').style.display = 'block';
+
+            saveBestTime(elapsedTime);
+        }
+
+        function saveBestTime(currentTime) {
+            const bestTime = localStorage.getItem('bestTime') ? parseInt(localStorage.getItem('bestTime')) : null;
+
+            if (bestTime === null || currentTime < bestTime) {
+                localStorage.setItem('bestTime', currentTime);
+                alert(`Új legjobb időd: ${Math.floor(currentTime / 60)}:${(currentTime % 60 < 10 ? '0' : '') + (currentTime % 60)}`);
+            } else {
+                alert(`Legjobb időd: ${Math.floor(bestTime / 60)}:${(bestTime % 60 < 10 ? '0' : '') + (bestTime % 60)}`);
+            }
         }
 
         function restartGame() {
